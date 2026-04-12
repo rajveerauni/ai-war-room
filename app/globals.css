@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global box-sizing */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Remove default body margin */
+body { margin: 0; }
