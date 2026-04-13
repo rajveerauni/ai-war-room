@@ -50,33 +50,7 @@ To get a local copy up and running, follow these simple steps.
 
 Ensure you have Node.js and npm installed on your system.
 
-### Installation
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/rajveerauni/AI-War-Room.git
-    cd AI-War-Room
-    ```
-2.  Install NPM packages:
-    ```bash
-    npm install
-    ```
-
-### Environment Variables
-
-3.  Create a `.env.local` file in the root directory and add your environment variables:
-    ```
-    VITE_SUPABASE_URL=your_supabase_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    GROQ_API_KEY=your_groq_api_key
-    ```
-    *   **VITE_SUPABASE_URL**: Your Supabase project URL.
-    *   **VITE_SUPABASE_ANON_KEY**: Your Supabase public anon key.
-    *   **GROQ_API_KEY**: Your API key for accessing Groq services.
-
-### Running the Application
-
-4.  Run the development server:
     ```bash
     npm run dev
     ```
