@@ -46,15 +46,7 @@ The AI War Room is built with a modern, scalable, and performant technology stac
 
 To get a local copy up and running, follow these simple steps.
 
-### Prerequisites
-
-Ensure you have Node.js and npm installed on your system.
-
-
-    ```bash
-    npm run dev
-    ```
-    The application will be accessible at `http://localhost:3000` (or another port if 3000 is in use).
+### Prerequisite
 
 ## Live Demo
 
