@@ -46,7 +46,7 @@ The AI War Room is built with a modern, scalable, and performant technology stac
 
 To get a local copy up and running, follow these simple steps.
 
-### Prerequisite
+
 
 ## Live Demo
 
