@@ -1,6 +1,6 @@
 # AI War Room
 
-## A Cutting-Edge C
+## 
 
 The AI War Room is an innovative platform designed to provide businesses with a strategic advantage by offering real-time, data-driven competitive insights. This project showcases a robust full-stack application leveraging modern web technologies and artificial intelligence to transform raw market data into actionable intelligence for informed decision-making.
 
