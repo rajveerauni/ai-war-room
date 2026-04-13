@@ -42,10 +42,6 @@ The AI War Room is built with a modern, scalable, and performant technology stac
 *   **Groq API**: Integrated for its high-performance language processing capabilities, powering the AI chat feature. Groq's efficient inference engine ensures rapid and accurate responses to complex queries, enhancing the user experience.
 *   **Tailwind CSS**: Used for utility-first CSS styling, enabling rapid and consistent UI development. Tailwind CSS ensures a clean, responsive, and visually appealing design across the application.
 
-## Setup and Local Development
-
-
-
 ## Live Demo
 
 [Add Vercel link here]
