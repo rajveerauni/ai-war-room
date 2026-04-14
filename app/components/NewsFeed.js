@@ -41,7 +41,13 @@ export default function NewsFeed({ companies = [] }) {
       const res = await fetch(`/api/news?companies=${encodeURIComponent(companies.join(','))}`);
       const json = await res.json();
       if (json.error && !json.articles) throw new Error(json.error);
-      setArticles(json.articles || []);
+      const seen = new Set();
+      const unique = (json.articles || []).filter((a) => {
+        if (seen.has(a.url)) return false;
+        seen.add(a.url);
+        return true;
+      });
+      setArticles(unique);
       setFetchedAt(json.fetchedAt);
       setNoKey(!json.hasApiKey);
       setStale(false);
@@ -122,7 +128,7 @@ export default function NewsFeed({ companies = [] }) {
           <AnimatePresence initial={false}>
             {articles.map((a, i) => (
               <motion.a
-                key={a.url || i}
+                key={`${a.url}-${i}`}
                 href={a.url}
                 target="_blank"
                 rel="noreferrer"
