@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html className="dark" lang="en">
+    <html className="dark" lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -81,7 +81,7 @@ export default function RootLayout({ children }) {
           ::-webkit-scrollbar-thumb { background: #353534; }
         `}} />
       </head>
-      <body className="antialiased m-0">
+      <body className="antialiased m-0" suppressHydrationWarning>
         <OnboardingOverlay />
         <SettingsDrawer />
         <Sidebar />

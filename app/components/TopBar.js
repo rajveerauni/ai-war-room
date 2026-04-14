@@ -14,6 +14,13 @@ export default function TopBar({ title }) {
     ? data.companyName.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('')
     : 'CC';
 
+  function handleSearchKeyDown(e) {
+    if (e.key === 'Enter' && searchVal.trim()) {
+      window.dispatchEvent(new CustomEvent('query-intel', { detail: { query: searchVal.trim() } }));
+      setSearchVal('');
+    }
+  }
+
   return (
     <header className="fixed top-0 right-0 w-[calc(100%-220px)] z-40 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800/50 flex justify-between items-center px-8 py-4">
       <div className="flex items-center gap-4">
@@ -31,6 +38,7 @@ export default function TopBar({ title }) {
           <input
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
             className="bg-surface-container-lowest border-none text-[11px] font-mono w-48 py-1.5 pl-9 pr-4 focus:ring-1 focus:ring-white transition-all placeholder:text-neutral-700 focus:outline-none"
             placeholder="QUERY_INTEL..."
             type="text"

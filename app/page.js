@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import TopBar from './components/TopBar';
 import NewsFeed from './components/NewsFeed';
 import { useWarRoomData, getInitials } from '../lib/useWarRoomData';
@@ -9,13 +9,49 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, Legend,
 } from 'recharts';
 
-// ─── KPIs stay user-provided ─────────────────────────────────────────────────
-const kpis = [
-  { label: 'Total Revenue', value: '$2.4M', change: '+12.4%', positive: true, bar: 75 },
-  { label: 'Churn Rate', value: '3.2%', change: '-0.4%', positive: true, bar: 25 },
-  { label: 'Market Share', value: '18.7%', change: '+2.1%', positive: true, bar: 50 },
-  { label: 'NPS Score', value: '67', change: '+5', positive: true, bar: 67 },
-];
+// ─── Build live KPI cards from Yahoo Finance stock data ───────────────────────
+function buildKpis(stock) {
+  if (!stock) return [];
+  const fmtVol = (v) => {
+    if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+    if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+    return String(v);
+  };
+  const candidates = [
+    {
+      label: 'Stock Price',
+      value: stock.price != null ? `$${stock.price.toFixed(2)}` : null,
+      sub: stock.currency || 'USD',
+    },
+    {
+      label: '% Change Today',
+      value: stock.change != null ? `${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%` : null,
+      positive: stock.change != null ? stock.change >= 0 : null,
+    },
+    {
+      label: 'Market Cap',
+      value: stock.marketCap != null ? fmt(stock.marketCap, 'B') : null,
+    },
+    {
+      label: 'Volume',
+      value: stock.volume != null ? fmtVol(stock.volume) : null,
+    },
+    {
+      label: 'Day High',
+      value: stock.dayHigh != null ? `$${stock.dayHigh.toFixed(2)}` : null,
+    },
+    {
+      label: 'Day Low',
+      value: stock.dayLow != null ? `$${stock.dayLow.toFixed(2)}` : null,
+    },
+    {
+      label: 'P/E Ratio',
+      value: stock.pe != null ? stock.pe.toFixed(1) : null,
+    },
+  ];
+  return candidates.filter((c) => c.value !== null);
+}
 
 const cardContainer = {
   hidden: {},
@@ -126,6 +162,45 @@ export default function Dashboard() {
   const [stale, setStale] = useState(false);
   const [fetchedAt, setFetchedAt] = useState(null);
 
+  // ── Search / QUERY_INTEL state ──────────────────────────────────────────────
+  const [queriedCompany, setQueriedCompany] = useState(null); // { query, ticker, stock, stockHistory }
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const defaultLoadedRef = useRef(false);
+
+  const handleSearch = useCallback(async (query) => {
+    if (!query?.trim()) return;
+    setSearching(true);
+    setSearchError('');
+    setQueriedCompany(null);
+    try {
+      const res = await fetch(`/api/stock-search?q=${encodeURIComponent(query.trim())}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Search failed.');
+      setQueriedCompany({ query: query.trim(), ticker: json.ticker, stock: json.stock, stockHistory: json.stockHistory });
+    } catch (err) {
+      setSearchError(err.message || 'Search failed.');
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  // Listen for QUERY_INTEL events from TopBar
+  useEffect(() => {
+    const handler = (e) => handleSearch(e.detail?.query);
+    window.addEventListener('query-intel', handler);
+    return () => window.removeEventListener('query-intel', handler);
+  }, [handleSearch]);
+
+  // Default to AAPL when no onboarding data is present
+  useEffect(() => {
+    if (!userLoading && !data && !defaultLoadedRef.current) {
+      defaultLoadedRef.current = true;
+      handleSearch('AAPL');
+    }
+  }, [userLoading, data, handleSearch]);
+
+  // ── Onboarding companies dashboard load ────────────────────────────────────
   const companies = data
     ? [data.companyName, data.competitor1, data.competitor2, data.competitor3].filter(Boolean)
     : [];
@@ -152,8 +227,16 @@ export default function Dashboard() {
   const uc = dashData?.userCompany;
   const comps = dashData?.competitors || [];
 
+  // ── Effective display data: search result overrides onboarding company ──────
+  const displayStock = queriedCompany?.stock || uc?.stock || null;
+  const displayHistory = queriedCompany?.stockHistory || uc?.stockHistory || null;
+  const displayName = queriedCompany
+    ? `${queriedCompany.query} (${queriedCompany.ticker})`
+    : (data?.companyName || '');
+  const isQueried = !!queriedCompany;
+
   // Chart datasets
-  const priceHistory = uc?.stockHistory || null;
+  const priceHistory = displayHistory;
   const trendsData = mergeTrends(uc?.trends, data?.companyName, comps);
   const allCompanies = [data?.companyName, ...comps.map((c) => c.name)].filter(Boolean);
 
@@ -189,46 +272,93 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* KPI Cards — user provided */}
-      <motion.section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" variants={cardContainer} initial="hidden" animate="visible">
-        {kpis.map((kpi) => (
-          <motion.div key={kpi.label} variants={cardItem} whileHover={{ scale: 1.02, transition: { duration: 0.18 } }} className="bg-surface-container-low p-5 ghost-border cursor-default">
-            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-4">{kpi.label}</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black tabular-nums text-white">{kpi.value}</span>
-              <span className={`text-[10px] font-bold ${kpi.positive ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
-                {kpi.positive ? '↑' : '↓'} {kpi.change}
-              </span>
-            </div>
-            <div className="mt-4 h-[2px] bg-neutral-800 w-full overflow-hidden">
-              <motion.div className="h-full bg-secondary" initial={{ width: 0 }} animate={{ width: `${kpi.bar}%` }} transition={{ type: 'spring', stiffness: 60, damping: 18, delay: 0.3 }} />
-            </div>
+      {/* Search result / queried company banner */}
+      <AnimatePresence>
+        {(isQueried || searchError) && (
+          <motion.div
+            className={`flex items-center justify-between gap-4 px-4 py-2 mb-4 border font-mono text-[11px] ${
+              searchError
+                ? 'bg-[#b91a24]/10 border-[#b91a24]/50 text-[#b91a24]'
+                : 'bg-[#4ae176]/5 border-[#4ae176]/30 text-[#4ae176]'
+            }`}
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {searchError ? (
+              <span>ERROR: {searchError}</span>
+            ) : (
+              <span>QUERY RESULT: {queriedCompany?.query?.toUpperCase()} → {queriedCompany?.ticker}</span>
+            )}
+            <button
+              onClick={() => { setQueriedCompany(null); setSearchError(''); }}
+              className="text-current opacity-60 hover:opacity-100 transition-opacity uppercase tracking-widest text-[10px]"
+            >
+              ✕ CLEAR
+            </button>
           </motion.div>
-        ))}
-      </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* KPI Cards — live Yahoo Finance data */}
+      {(fetching && !uc) || searching ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-surface-container-low p-5 ghost-border space-y-3">
+              <div className="h-3 bg-neutral-800/50 animate-pulse rounded w-1/2" />
+              <div className="h-7 bg-neutral-800/40 animate-pulse rounded w-3/4" />
+              {searching && i === 1 && (
+                <p className="text-[9px] font-mono text-neutral-600 uppercase tracking-widest animate-pulse">Fetching market data...</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : displayStock ? (
+        <motion.section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" variants={cardContainer} initial="hidden" animate="visible">
+          {buildKpis(displayStock).map((kpi) => (
+            <motion.div key={kpi.label} variants={cardItem} whileHover={{ scale: 1.02, transition: { duration: 0.18 } }} className="bg-surface-container-low p-5 ghost-border cursor-default">
+              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-4">{kpi.label}</span>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-2xl font-black tabular-nums text-white">{kpi.value}</span>
+                {kpi.positive != null && (
+                  <span className={`text-[10px] font-bold ${kpi.positive ? 'text-[#4ae176]' : 'text-[#b91a24]'}`}>
+                    {kpi.positive ? '▲' : '▼'}
+                  </span>
+                )}
+                {kpi.sub && <span className="text-[10px] text-neutral-600 font-mono">{kpi.sub}</span>}
+              </div>
+            </motion.div>
+          ))}
+        </motion.section>
+      ) : !fetching && !searching && (data || defaultLoadedRef.current) ? (
+        <div className="mb-8 p-4 bg-surface-container ghost-border">
+          <p className="text-xs text-neutral-500 font-mono uppercase tracking-widest">
+            No market data — company may be private or ticker not found.
+          </p>
+        </div>
+      ) : null}
 
       {/* Stock Price History */}
       <motion.section className="bg-surface-container p-6 mb-8 ghost-border" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
         <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
           <div>
             <h4 className="text-xs font-bold text-white uppercase tracking-widest">
-              {uc?.stock ? `${data?.companyName} · Stock Price (30d)` : `${data?.companyName} · Market Data`}
+              {displayStock ? `${displayName} · Stock Price (30d)` : `${displayName || 'Market Data'}`}
             </h4>
             <p className="text-[10px] text-neutral-500 uppercase tracking-tighter mt-0.5">
-              {uc?.stock
-                ? `$${uc.stock.price} · MCap: ${fmt(uc.stock.marketCap, 'B')} · ${uc.stock.change > 0 ? '+' : ''}${uc.stock.change}% today`
+              {displayStock
+                ? `$${displayStock.price} · MCap: ${fmt(displayStock.marketCap, 'B')} · ${displayStock.change > 0 ? '+' : ''}${displayStock.change}% today`
                 : 'Live price data via Yahoo Finance'}
             </p>
           </div>
           <div className="flex gap-2 items-center">
-            {uc?.stock && <DataSourceBadge count="Yahoo Finance" label="LIVE" />}
+            {displayStock && <DataSourceBadge count="Yahoo Finance" label="LIVE" />}
             <motion.a href="/reports" className="px-3 py-1 bg-white text-black text-[10px] font-bold uppercase tracking-tighter border border-white" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               FULL_REPORT
             </motion.a>
           </div>
         </div>
         <div className="h-[280px] w-full">
-          {fetching && !priceHistory ? (
+          {(fetching || searching) && !priceHistory ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-neutral-600 text-xs font-mono animate-pulse">FETCHING MARKET DATA...</div>
             </div>
@@ -244,8 +374,8 @@ export default function Dashboard() {
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center gap-2">
-              <p className="text-neutral-500 text-xs">No stock data — {data?.companyName} may be private.</p>
-              <p className="text-neutral-600 text-[10px] font-mono">Yahoo Finance returned no results.</p>
+              <p className="text-neutral-500 text-xs">No chart data — {displayName || 'company'} may be private.</p>
+              <p className="text-neutral-600 text-[10px] font-mono">Search a ticker (e.g. AAPL, TSLA) using QUERY_INTEL above.</p>
             </div>
           )}
         </div>
