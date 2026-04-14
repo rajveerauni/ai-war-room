@@ -42,7 +42,7 @@ The AI War Room is built with a modern, scalable, and performant technology stac
 
 ## Live Demo
 
-[Add Vercel link here]
+* (https://ai-war-room-five.vercel.app/)
 
 ## Author
 
