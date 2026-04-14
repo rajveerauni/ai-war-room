@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 import { fetchCompetitorBundle } from '../../../lib/dataFetcher.js';
 
-const grok = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: 'https://api.x.ai/v1',
-});
-const MODEL = 'grok-3';
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = 'llama-3.3-70b-versatile';
 
 function fmt(n, unit = '') {
   if (n == null) return 'N/A';
@@ -76,7 +73,7 @@ END_JSON
 ANALYSIS:
 3 paragraphs of strategic analysis grounded in the live data above. Cite specific numbers.`;
 
-    const response = await grok.chat.completions.create({
+    const response = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
       model: MODEL,
     });
