@@ -37,7 +37,7 @@ The AI War Room is built with a modern, scalable, and performant technology stac
 
 *   **Next.js**: Utilized for its powerful React framework capabilities, enabling server-side rendering (SSR) and static site generation (SSG) for optimal performance, SEO, and developer experience. It forms the robust foundation of the user interface.
 *   **Supabase**: Employed as a backend-as-a-service (BaaS) solution, providing a PostgreSQL database, authentication, and real-time subscriptions. Supabase simplifies backend development, allowing for rapid feature iteration and secure data management.
-*   **Groq API**: Integrated for its high-performance language processing capabilities, powering the AI chat feature. Groq's efficient inference engine ensures rapid and accurate responses to complex queries, enhancing the user experience.
+*   **Grok API**: Integrated for its high-performance language processing capabilities, powering the AI chat feature. Groq's efficient inference engine ensures rapid and accurate responses to complex queries, enhancing the user experience.
 *   **Tailwind CSS**: Used for utility-first CSS styling, enabling rapid and consistent UI development. Tailwind CSS ensures a clean, responsive, and visually appealing design across the application.
 
 ## Live Demo
